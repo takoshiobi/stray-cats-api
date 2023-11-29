@@ -6,8 +6,10 @@ import ru.sds.straycats.exception.BadRequestException;
 import ru.sds.straycats.exception.NotFoundException;
 import ru.sds.straycats.mapper.CatInfoMapper;
 import ru.sds.straycats.mapper.CatMapper;
+import ru.sds.straycats.mapper.PriceInfoMapper;
 import ru.sds.straycats.model.dto.Cat;
 import ru.sds.straycats.model.dto.CatInfo;
+import ru.sds.straycats.model.dto.PriceInfo;
 import ru.sds.straycats.model.entity.CatEntity;
 import ru.sds.straycats.model.entity.PriceEntity;
 import ru.sds.straycats.repository.CatRepository;
@@ -18,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -28,6 +31,7 @@ public class CatService {
     private final PriceRepository priceRepository;
     private final CatMapper catMapper;
     private final CatInfoMapper catInfoMapper;
+    private final PriceInfoMapper priceInfoMapper;
 
     private static final String VALID_DATE_FORMAT = "^[0-3]{0,1}[0-9][.][0-1]{0,1}[0-9][.][0-9]{4}$";
     private static final List<Integer> genders = Arrays.asList(0, 1);
@@ -53,6 +57,21 @@ public class CatService {
         priceRepository.save(price);
 
         return catInfoMapper.toDto(createdCat);
+    }
+
+    public CatInfo getCatById(Long catId) {
+        CatEntity cat = catRepository.findById(catId)
+                .orElseThrow(() -> new NotFoundException(String.format("Cat with id %s doesn't exist", catId)));
+
+        return catInfoMapper.toDto(cat);
+    }
+
+    public List<PriceInfo> getCatPriceHistory(Long catId) {
+        List<PriceEntity> catPrices = priceRepository.getPriceEntitiesByCatId(catId);
+        return catPrices
+                .stream()
+                .map(catPrice -> priceInfoMapper.toDto(catPrice))
+                .collect(Collectors.toList());
     }
 
     private void validateCat(Cat cat) {
