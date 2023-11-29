@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface PriceRepository extends CrudRepository<PriceEntity, Long> {
-    List<PriceEntity> getPriceEntitiesByCatId(Long id);
+    List<PriceEntity> getPriceEntitiesByCatIdOrderByCreateTsDesc(Long id);
 }

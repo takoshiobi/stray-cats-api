@@ -15,12 +15,13 @@ import ru.sds.straycats.model.entity.PriceEntity;
 import ru.sds.straycats.repository.CatRepository;
 import ru.sds.straycats.repository.PriceRepository;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -42,7 +43,9 @@ public class CatService {
             cat.setName(generateName());
         }
 
-        validateCat(cat);
+        validateNullsCat(cat);
+        validateGender(cat);
+        validateBirthDate(cat);
 
         CatEntity catEntity = catMapper.toEntity(cat);
         catRepository.save(catEntity);
@@ -67,25 +70,74 @@ public class CatService {
     }
 
     public List<PriceInfo> getCatPriceHistory(Long catId) {
-        List<PriceEntity> catPrices = priceRepository.getPriceEntitiesByCatId(catId);
+        List<PriceEntity> catPrices = priceRepository.getPriceEntitiesByCatIdOrderByCreateTsDesc(catId);
         return catPrices
                 .stream()
-                .map(catPrice -> priceInfoMapper.toDto(catPrice))
-                .collect(Collectors.toList());
+                .map(priceInfoMapper::toDto)
+                .toList();
     }
 
-    private void validateCat(Cat cat) {
-        if (!cat.getBirth().matches(VALID_DATE_FORMAT)) {
-            throw new BadRequestException("Birth date format must comply pattern DD.MM.YYYY");
+    public CatInfo patchCatInfo(Long catId, Cat cat) {
+        CatEntity currentCat = catRepository.findById(catId)
+                .orElseThrow(() -> new NotFoundException("Cat not found"));
+
+        PriceEntity priceEntity = new PriceEntity();
+
+        if (Objects.nonNull(cat.getPrice())) {
+            priceEntity.setCatId(catId);
+            priceEntity.setPrice(cat.getPrice());
+            priceEntity.setCreateTs(LocalDateTime.now());
+            priceRepository.save(priceEntity);
         }
+
+        if (Objects.nonNull(cat.getBirth())) {
+            validateBirthDate(cat);
+            SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
+            try {
+                currentCat.setBirth(format.parse(cat.getBirth()));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (Objects.nonNull(cat.getGender())) {
+            validateGender(cat);
+            currentCat.setGender(cat.getGender());
+        }
+
+        if (Objects.nonNull(cat.getName())) {
+            if (cat.getName().isEmpty()) {
+                currentCat.setName(generateName());
+            }
+            currentCat.setName(cat.getName());
+        }
+
+        if (Objects.nonNull(cat.getBreed())) {
+            currentCat.setBreed(cat.getBreed());
+        }
+
+        catRepository.save(currentCat);
+        return catInfoMapper.toDto(currentCat);
+    }
+
+    private void validateNullsCat(Cat cat) {
         if (Objects.isNull(cat.getBirth())
                 || Objects.isNull(cat.getGender())
                 || Objects.isNull(cat.getPrice())
                 || Objects.isNull(cat.getBreed())) {
             throw new BadRequestException("Missing argument(-s): birth, gender, price or breed");
         }
+    }
+
+    private void validateGender(Cat cat) {
         if (!genders.contains(cat.getGender())) {
             throw new BadRequestException("Cat gender should be binary: 0 - Female, 1 - Male");
+        }
+    }
+
+    private void validateBirthDate(Cat cat) {
+        if (!cat.getBirth().matches(VALID_DATE_FORMAT)) {
+            throw new BadRequestException("Birth date format must comply pattern DD.MM.YYYY");
         }
     }
 

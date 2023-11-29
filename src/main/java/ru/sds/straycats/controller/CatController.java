@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import ru.sds.straycats.annotation.CreateResponse;
 import ru.sds.straycats.annotation.ObjectResponse;
 import ru.sds.straycats.model.dto.Cat;
@@ -18,7 +19,6 @@ import ru.sds.straycats.model.dto.PriceInfo;
 import ru.sds.straycats.service.CatService;
 
 import java.util.List;
-
 
 @Tag(name = "Stray cats")
 @RequiredArgsConstructor
@@ -47,5 +47,12 @@ public class CatController {
     @GetMapping(value = "/{id}/price/history")
     public List<PriceInfo> getCatPriceHistory(@PathVariable Long id) {
         return catService.getCatPriceHistory(id);
+    }
+
+    @ObjectResponse
+    @Operation(summary = "Update cat information")
+    @PatchMapping(value = "/{id}")
+    public CatInfo patchCatInfo(@PathVariable Long id, @RequestBody Cat cat) {
+        return catService.patchCatInfo(id, cat);
     }
 }
