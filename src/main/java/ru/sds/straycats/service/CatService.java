@@ -66,6 +66,10 @@ public class CatService {
         CatEntity cat = catRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException(String.format("Cat with id %s doesn't exist", catId)));
 
+        if (cat.getRemovedFromSale()) {
+            throw new NotFoundException("Cat has been removed from sale");
+        }
+
         return catInfoMapper.toDto(cat);
     }
 
