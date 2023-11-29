@@ -149,13 +149,11 @@ public class CatService {
         List<CatEntity> catEntitiesByGender = catRepository.getAllByGender(catSuggest.getGender());
         List<CatEntity> suggestions = new ArrayList<>();
 
-        for (CatEntity cat: catEntitiesByGender) {
+        for (CatEntity cat : catEntitiesByGender) {
             PriceEntity price = priceRepository.getCatCurrentPrice(cat.getId());
-
             if (Objects.isNull(price)) {
                 continue;
             }
-
             if (price.getPrice() <= catSuggest.getMaxPrice()) {
                 suggestions.add(cat);
             }
@@ -164,7 +162,6 @@ public class CatService {
         if (suggestions.isEmpty()) {
             throw new NotFoundException("No kitties to recommend");
         }
-
         if (suggestions.size() > 1) {
             CatEntity suggestedEntity = suggestions.get(rand.nextInt(suggestions.size()));
             return catInfoMapper.toDto(suggestedEntity);
