@@ -10,6 +10,7 @@ import ru.sds.straycats.mapper.CatMapper;
 import ru.sds.straycats.mapper.PriceInfoMapper;
 import ru.sds.straycats.model.dto.Cat;
 import ru.sds.straycats.model.dto.CatInfo;
+import ru.sds.straycats.model.dto.CatSuggest;
 import ru.sds.straycats.model.dto.PriceInfo;
 import ru.sds.straycats.model.entity.CatEntity;
 import ru.sds.straycats.model.entity.PriceEntity;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -82,7 +84,7 @@ public class CatService {
     }
 
     public PriceInfo getCurrentPriceByCatId(Long catId) {
-        PriceEntity priceEntity = priceRepository.findByCatIdAndMaxCreateTs(catId);
+        PriceEntity priceEntity = priceRepository.getCatCurrentPrice(catId);
 
         if (ObjectUtils.isEmpty(priceEntity)) {
             throw new NotFoundException("Цена не найдена: бесценный кот");
@@ -141,6 +143,34 @@ public class CatService {
         catRepository.save(currentCat);
 
         return "Cat has been removed from sale";
+    }
+
+    public CatInfo recommendCat(CatSuggest catSuggest) {
+        List<CatEntity> catEntitiesByGender = catRepository.getAllByGender(catSuggest.getGender());
+        List<CatEntity> suggestions = new ArrayList<>();
+
+        for (CatEntity cat: catEntitiesByGender) {
+            PriceEntity price = priceRepository.getCatCurrentPrice(cat.getId());
+
+            if (Objects.isNull(price)) {
+                continue;
+            }
+
+            if (price.getPrice() <= catSuggest.getMaxPrice()) {
+                suggestions.add(cat);
+            }
+        }
+
+        if (suggestions.isEmpty()) {
+            throw new NotFoundException("No kitties to recommend");
+        }
+
+        if (suggestions.size() > 1) {
+            CatEntity suggestedEntity = suggestions.get(rand.nextInt(suggestions.size()));
+            return catInfoMapper.toDto(suggestedEntity);
+        }
+
+        return catInfoMapper.toDto(suggestions.getFirst());
     }
 
     private void validateNullsCat(Cat cat) {

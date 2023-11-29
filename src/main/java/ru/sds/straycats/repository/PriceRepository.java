@@ -10,14 +10,14 @@ import java.util.List;
 @Repository
 public interface PriceRepository extends CrudRepository<PriceEntity, Long> {
 
-    List<PriceEntity> getPriceEntitiesByCatIdOrderByCreateTsDesc(Long id);
+    List<PriceEntity> getPriceEntitiesByCatIdOrderByCreateTsDesc(Long catId);
 
     @Query(value = "" +
             "select * " +
             "from straycats.price p " +
-            "where p.cat_id = :id " +
+            "where p.cat_id = :catId " +
             "order by p.create_ts desc " +
             "limit 1"
     )
-    PriceEntity findByCatIdAndMaxCreateTs(Long id);
+    PriceEntity getCatCurrentPrice(Long catId);
 }

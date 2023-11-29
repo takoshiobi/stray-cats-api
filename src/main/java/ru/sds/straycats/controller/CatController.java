@@ -16,6 +16,7 @@ import ru.sds.straycats.annotation.CreateResponse;
 import ru.sds.straycats.annotation.ObjectResponse;
 import ru.sds.straycats.model.dto.Cat;
 import ru.sds.straycats.model.dto.CatInfo;
+import ru.sds.straycats.model.dto.CatSuggest;
 import ru.sds.straycats.model.dto.PriceInfo;
 import ru.sds.straycats.service.CatService;
 
@@ -69,5 +70,12 @@ public class CatController {
     @DeleteMapping(value = "/{id}")
     public String removeFromSale(@PathVariable Long id) {
         return catService.removeFromSale(id);
+    }
+
+    @ObjectResponse
+    @Operation(summary = "Cat recommendation")
+    @PostMapping(value = "/recommend")
+    public CatInfo recommendCat(@RequestBody CatSuggest catSuggest) {
+        return catService.recommendCat(catSuggest);
     }
 }
