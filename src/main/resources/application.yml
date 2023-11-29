@@ -1,5 +1,7 @@
 server:
   port: ${APP_PORT:8080}
+  error:
+    include-stacktrace: never
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -8,4 +10,3 @@ spring:
     password: ${DB_PG_PWD_RW:postgres}
   liquibase:
     enabled: false
-
