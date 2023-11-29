@@ -1,6 +1,7 @@
 package ru.sds.straycats.service;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 import ru.sds.straycats.exception.BadRequestException;
 import ru.sds.straycats.exception.NotFoundException;
@@ -22,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
-
 
 @Service
 @RequiredArgsConstructor
@@ -69,12 +69,22 @@ public class CatService {
         return catInfoMapper.toDto(cat);
     }
 
-    public List<PriceInfo> getCatPriceHistory(Long catId) {
+    public List<PriceInfo> getPriceHistoryByCatId(Long catId) {
         List<PriceEntity> catPrices = priceRepository.getPriceEntitiesByCatIdOrderByCreateTsDesc(catId);
         return catPrices
                 .stream()
                 .map(priceInfoMapper::toDto)
                 .toList();
+    }
+
+    public PriceInfo getCurrentPriceByCatId(Long catId) {
+        PriceEntity priceEntity = priceRepository.findByCatIdAndMaxCreateTs(catId);
+
+        if (ObjectUtils.isEmpty(priceEntity)) {
+            throw new NotFoundException("Цена не найдена: бесценный кот");
+        }
+
+        return priceInfoMapper.toDto(priceEntity);
     }
 
     public CatInfo patchCatInfo(Long catId, Cat cat) {

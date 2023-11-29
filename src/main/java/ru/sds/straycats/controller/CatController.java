@@ -46,7 +46,7 @@ public class CatController {
     @Operation(summary = "Get cat price history")
     @GetMapping(value = "/{id}/price/history")
     public List<PriceInfo> getCatPriceHistory(@PathVariable Long id) {
-        return catService.getCatPriceHistory(id);
+        return catService.getPriceHistoryByCatId(id);
     }
 
     @ObjectResponse
@@ -54,5 +54,12 @@ public class CatController {
     @PatchMapping(value = "/{id}")
     public CatInfo patchCatInfo(@PathVariable Long id, @RequestBody Cat cat) {
         return catService.patchCatInfo(id, cat);
+    }
+
+    @ObjectResponse
+    @Operation(summary = "Get current price of the cat")
+    @GetMapping(value = "/{id}/price")
+    public PriceInfo getCurrentCatPrice(@PathVariable Long id) {
+        return catService.getCurrentPriceByCatId(id);
     }
 }
