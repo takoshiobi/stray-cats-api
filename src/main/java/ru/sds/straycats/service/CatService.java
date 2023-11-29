@@ -134,6 +134,15 @@ public class CatService {
         return catInfoMapper.toDto(currentCat);
     }
 
+    public String removeFromSale(Long catId) {
+        CatEntity currentCat = catRepository.findById(catId)
+                .orElseThrow(() -> new NotFoundException("Cat not found"));
+        currentCat.setRemovedFromSale(true);
+        catRepository.save(currentCat);
+
+        return "Cat has been removed from sale";
+    }
+
     private void validateNullsCat(Cat cat) {
         if (Objects.isNull(cat.getBirth())
                 || Objects.isNull(cat.getGender())

@@ -4,13 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import ru.sds.straycats.annotation.CreateResponse;
 import ru.sds.straycats.annotation.ObjectResponse;
 import ru.sds.straycats.model.dto.Cat;
@@ -61,5 +62,12 @@ public class CatController {
     @GetMapping(value = "/{id}/price")
     public PriceInfo getCurrentCatPrice(@PathVariable Long id) {
         return catService.getCurrentPriceByCatId(id);
+    }
+
+    @ObjectResponse
+    @Operation(summary = "Remove kitty from sale")
+    @DeleteMapping(value = "/{id}")
+    public String removeFromSale(@PathVariable Long id) {
+        return catService.removeFromSale(id);
     }
 }
