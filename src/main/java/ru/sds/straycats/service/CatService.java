@@ -1,202 +1,155 @@
 package ru.sds.straycats.service;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 import ru.sds.straycats.exception.BadRequestException;
 import ru.sds.straycats.exception.NotFoundException;
-import ru.sds.straycats.mapper.CatInfoMapper;
-import ru.sds.straycats.mapper.CatMapper;
-import ru.sds.straycats.mapper.PriceInfoMapper;
-import ru.sds.straycats.model.dto.Cat;
-import ru.sds.straycats.model.dto.CatInfo;
-import ru.sds.straycats.model.dto.CatSuggest;
-import ru.sds.straycats.model.dto.PriceInfo;
-import ru.sds.straycats.model.entity.CatEntity;
-import ru.sds.straycats.model.entity.PriceEntity;
+import ru.sds.straycats.exception.ServerErrorException;
+import ru.sds.straycats.model.dto.CatPriceDBParamsDto;
+import ru.sds.straycats.model.dto.cat.*;
+import ru.sds.straycats.model.dto.price.PriceDBParamsDto;
+import ru.sds.straycats.repository.CatPriceRepository;
 import ru.sds.straycats.repository.CatRepository;
-import ru.sds.straycats.repository.PriceRepository;
+import ru.sds.straycats.utils.StrayCatsUtils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
-import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
 public class CatService {
 
     private final CatRepository catRepository;
-    private final PriceRepository priceRepository;
-    private final CatMapper catMapper;
-    private final CatInfoMapper catInfoMapper;
-    private final PriceInfoMapper priceInfoMapper;
-
-    private static final String VALID_DATE_FORMAT = "^[0-3]{0,1}[0-9][.][0-1]{0,1}[0-9][.][0-9]{4}$";
+    private final CatPriceRepository catPriceRepository;
+    private final StrayCatsUtils strayCatsUtils;
+    private final PriceService priceService;
     private static final List<Integer> genders = Arrays.asList(0, 1);
     Random rand = new Random();
 
-    public CatInfo createCat(Cat cat) {
-        if (Objects.isNull(cat.getName()) || cat.getName().isEmpty()) {
-            cat.setName(generateName());
+    public Long createCat(CatDto catDto) {
+        validateGender(catDto);
+
+        if (Objects.isNull(catDto.getName()) || catDto.getName().isEmpty()) {
+            catDto.setName(strayCatsUtils.generateName());
         }
 
-        validateNullsCat(cat);
-        validateGender(cat);
-        validateBirthDate(cat);
+        CatDBParamsDto createdCat = catRepository.create(
+                catDto.getName(),
+                catDto.getBirth(),
+                catDto.getBreed(),
+                catDto.getGender(),
+                false
+        );
 
-        CatEntity catEntity = catMapper.toEntity(cat);
-        catRepository.save(catEntity);
+        if (Objects.isNull(createdCat)) {
+            throw new ServerErrorException("Cannot create cat");
+        }
 
-        CatEntity createdCat = catRepository.findById(catEntity.getId())
-                .orElseThrow(() -> new NotFoundException("Cat not found"));
+        priceService.createPrice(createdCat.getId(), catDto.getPrice());
 
-        PriceEntity price = new PriceEntity();
-        price.setCatId(createdCat.getId());
-        price.setPrice(cat.getPrice());
-        price.setCreateTs(LocalDateTime.now());
-        priceRepository.save(price);
-
-        return catInfoMapper.toDto(createdCat);
+        return createdCat.getId();
     }
 
-    public CatInfo getCatById(Long catId) {
-        CatEntity cat = catRepository.findById(catId)
-                .orElseThrow(() -> new NotFoundException(String.format("Cat with id %s doesn't exist", catId)));
+    public CatGetByIdResponseDto getCatById(Long catId) {
+        List<CatDBParamsDto> cat = catRepository.findById(catId);
 
-        if (cat.getRemovedFromSale()) {
-            throw new NotFoundException("Cat has been removed from sale");
+        if (cat.isEmpty() || cat.getFirst().getRemovedFromSale().equals(true)) {
+            throw new NotFoundException(String.format("Cat with id %s not found", catId));
         }
 
-        return catInfoMapper.toDto(cat);
+        return new CatGetByIdResponseDto()
+                .setId(cat.getFirst().getId())
+                .setBirth(cat.getFirst().getBirth())
+                .setName(cat.getFirst().getName())
+                .setBreed(cat.getFirst().getBreed())
+                .setGender(cat.getFirst().getGender());
     }
 
-    public List<PriceInfo> getPriceHistoryByCatId(Long catId) {
-        List<PriceEntity> catPrices = priceRepository.getPriceEntitiesByCatIdOrderByCreateTsDesc(catId);
-        return catPrices
-                .stream()
-                .map(priceInfoMapper::toDto)
-                .toList();
+    public CatDto updateCat(CatUpdateRequestDto catUpdateRequestDto) {
+        if (catUpdateRequestDto.getName().equals("")) {
+            throw new BadRequestException("Can't update cat name to empty string");
+        }
+
+        CatGetByIdResponseDto cat = getCatById(catUpdateRequestDto.getId());
+        PriceDBParamsDto currentPrice = priceService.getCurrentPriceByCatId(catUpdateRequestDto.getId());
+
+        catRepository.update(
+                cat.getId(),
+                catUpdateRequestDto.getName(),
+                catUpdateRequestDto.getBirth(),
+                catUpdateRequestDto.getBreed(),
+                catUpdateRequestDto.getGender(),
+                false
+        );
+
+        if (!currentPrice.getPrice().equals(catUpdateRequestDto.getPrice())) {
+            priceService.createPrice(
+                    cat.getId(),
+                    catUpdateRequestDto.getPrice()
+            );
+        }
+
+        return new CatDto(
+                catUpdateRequestDto.getGender(),
+                catUpdateRequestDto.getBirth(),
+                catUpdateRequestDto.getBreed(),
+                catUpdateRequestDto.getPrice()
+        ).setName(catUpdateRequestDto.getName());
     }
 
-    public PriceInfo getCurrentPriceByCatId(Long catId) {
-        PriceEntity priceEntity = priceRepository.getCatCurrentPrice(catId);
-
-        if (ObjectUtils.isEmpty(priceEntity)) {
-            throw new NotFoundException("Цена не найдена: бесценный кот");
+    public void removeFromSale(CatDeleteRequestDto catDeleteRequestDto) {
+        List<CatDBParamsDto> catList = catRepository.findById(catDeleteRequestDto.getId());
+        if (catList.isEmpty()) {
+            throw new NotFoundException(String.format("Cat with id %s not found", catDeleteRequestDto.getId()));
         }
 
-        return priceInfoMapper.toDto(priceEntity);
+        CatDBParamsDto cat = catList.getFirst();
+        if (cat.getRemovedFromSale().equals(true)) {
+            throw new BadRequestException(String.format("Cat with id %s has been already removed from sale", catDeleteRequestDto.getId()));
+        }
+
+        cat.setRemovedFromSale(true);
+
+        catRepository.update(
+                catDeleteRequestDto.getId(),
+                cat.getName(),
+                cat.getBirth(),
+                cat.getBreed(),
+                cat.getGender(),
+                cat.getRemovedFromSale()
+        );
     }
 
-    public CatInfo patchCatInfo(Long catId, Cat cat) {
-        CatEntity currentCat = catRepository.findById(catId)
-                .orElseThrow(() -> new NotFoundException("Cat not found"));
+    public CatDto suggestCat(CatSuggestionRequestDto catSuggestionRequestDto) {
+        List<CatPriceDBParamsDto> catList = catPriceRepository.getAllCatsByGenderAndMaxPrice(catSuggestionRequestDto.getGender(), catSuggestionRequestDto.getMaxPrice());
 
-        PriceEntity priceEntity = new PriceEntity();
-
-        if (Objects.nonNull(cat.getPrice())) {
-            priceEntity.setCatId(catId);
-            priceEntity.setPrice(cat.getPrice());
-            priceEntity.setCreateTs(LocalDateTime.now());
-            priceRepository.save(priceEntity);
+        if (catList.isEmpty()) {
+            throw new NotFoundException("No cats to recommend");
         }
 
-        if (Objects.nonNull(cat.getBirth())) {
-            validateBirthDate(cat);
-            SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
-            try {
-                currentCat.setBirth(format.parse(cat.getBirth()));
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
+        if (catList.size() > 1) {
+            CatPriceDBParamsDto suggestion = catList.get(rand.nextInt(catList.size()));
+            return new CatDto(
+                    suggestion.getGender(),
+                    suggestion.getBirth(),
+                    suggestion.getBreed(),
+                    suggestion.getPrice()
+            ).setName(suggestion.getName());
         }
 
-        if (Objects.nonNull(cat.getGender())) {
-            validateGender(cat);
-            currentCat.setGender(cat.getGender());
-        }
-
-        if (Objects.nonNull(cat.getName())) {
-            if (cat.getName().isEmpty()) {
-                currentCat.setName(generateName());
-            }
-            currentCat.setName(cat.getName());
-        }
-
-        if (Objects.nonNull(cat.getBreed())) {
-            currentCat.setBreed(cat.getBreed());
-        }
-
-        catRepository.save(currentCat);
-        return catInfoMapper.toDto(currentCat);
+        return new CatDto(
+                catList.getFirst().getGender(),
+                catList.getFirst().getBirth(),
+                catList.getFirst().getBreed(),
+                catList.getFirst().getPrice()
+        ).setName(catList.getFirst().getName());
     }
 
-    public String removeFromSale(Long catId) {
-        CatEntity currentCat = catRepository.findById(catId)
-                .orElseThrow(() -> new NotFoundException("Cat not found"));
-        currentCat.setRemovedFromSale(true);
-        catRepository.save(currentCat);
-
-        return "Cat has been removed from sale";
-    }
-
-    public CatInfo recommendCat(CatSuggest catSuggest) {
-        List<CatEntity> catEntitiesByGender = catRepository.getAllByGender(catSuggest.getGender());
-        List<CatEntity> suggestions = new ArrayList<>();
-
-        for (CatEntity cat : catEntitiesByGender) {
-            PriceEntity price = priceRepository.getCatCurrentPrice(cat.getId());
-            if (Objects.isNull(price)) {
-                continue;
-            }
-            if (price.getPrice() <= catSuggest.getMaxPrice()) {
-                suggestions.add(cat);
-            }
+    private void validateGender(CatDto catDto) {
+        if (!genders.contains(catDto.getGender())) {
+            throw new BadRequestException(String.format("Invalid gender %s. Cat gender should be binary: 0 - Female, 1 - Male", catDto.getGender()));
         }
-
-        if (suggestions.isEmpty()) {
-            throw new NotFoundException("No kitties to recommend");
-        }
-        if (suggestions.size() > 1) {
-            CatEntity suggestedEntity = suggestions.get(rand.nextInt(suggestions.size()));
-            return catInfoMapper.toDto(suggestedEntity);
-        }
-
-        return catInfoMapper.toDto(suggestions.getFirst());
-    }
-
-    private void validateNullsCat(Cat cat) {
-        if (Objects.isNull(cat.getBirth())
-                || Objects.isNull(cat.getGender())
-                || Objects.isNull(cat.getPrice())
-                || Objects.isNull(cat.getBreed())) {
-            throw new BadRequestException("Missing argument(-s): birth, gender, price or breed");
-        }
-    }
-
-    private void validateGender(Cat cat) {
-        if (!genders.contains(cat.getGender())) {
-            throw new BadRequestException("Cat gender should be binary: 0 - Female, 1 - Male");
-        }
-    }
-
-    private void validateBirthDate(Cat cat) {
-        if (!cat.getBirth().matches(VALID_DATE_FORMAT)) {
-            throw new BadRequestException("Birth date format must comply pattern DD.MM.YYYY");
-        }
-    }
-
-    private String generateName() {
-        List<String> firstName = Arrays.asList("Fluffy", "Dummy", "Orange", "Sparkling", "Extra large");
-        List<String> lastName = Arrays.asList("Pumpkin", "Disaster", "Monsieur", "Weirdo", "Shine");
-
-        return firstName.get(rand.nextInt(firstName.size()))
-                + " "
-                + lastName.get(rand.nextInt(lastName.size()));
     }
 }

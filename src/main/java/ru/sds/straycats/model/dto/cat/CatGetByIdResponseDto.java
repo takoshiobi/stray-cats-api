@@ -1,15 +1,16 @@
-package ru.sds.straycats.model.dto;
+package ru.sds.straycats.model.dto.cat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.Date;
+
 @Data
 @Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CatInfo {
+public class CatGetByIdResponseDto {
 
     @Schema(description = "Cat id")
     private Long id;
@@ -21,7 +22,7 @@ public class CatInfo {
     private Integer gender;
 
     @Schema(description = "Cat birthdate")
-    private String birth;
+    private Date birth;
 
     @Schema(description = "Cat breed")
     private String breed;

@@ -1,4 +1,4 @@
-package ru.sds.straycats.model.dto;
+package ru.sds.straycats.model.dto.cat;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,11 +8,8 @@ import lombok.experimental.Accessors;
 @Data
 @Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CatSuggest {
+public class CatDeleteRequestDto {
 
-    @Schema(description = "Cat gender")
-    private Integer gender;
-
-    @Schema(description = "Max price")
-    private Double maxPrice;
+    @Schema(description = "Cat id")
+    private Long id;
 }

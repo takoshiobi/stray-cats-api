@@ -1,27 +1,23 @@
-package ru.sds.straycats.model.dto;
+package ru.sds.straycats.model.dto.price;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 @Data
 @Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PriceInfo {
-
-    @Schema(description = "Price id")
-    private Long id;
+public class PriceCurrentResponseDto {
 
     @Schema(description = "Cat id")
     private Long catId;
 
-    @Schema(description = "Price")
+    @Schema(description = "Cat price")
     private Double price;
 
-    @Schema(description = "Create timestamp")
-    private LocalDateTime createTs;
+    @Schema(description = "Price creation time")
+    private Date createTs;
 }

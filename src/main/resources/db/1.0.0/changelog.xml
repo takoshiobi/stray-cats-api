@@ -12,4 +12,8 @@
         <sqlFile relativeToChangelogFile="true"
                  path="sql/20231127_1137_create_table_price.sql"/>
     </changeSet>
+    <changeSet id="20230312_1603_drop_index_idx_gender_breed" author="Yulia Scherbakova">
+        <sqlFile relativeToChangelogFile="true"
+                path="sql/20230312_1603_drop_index_idx_gender_breed.sql"/>
+    </changeSet>
 </databaseChangeLog>
