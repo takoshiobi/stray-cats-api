@@ -2,6 +2,7 @@ package ru.sds.straycats.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.sds.straycats.exception.BadRequestException;
 import ru.sds.straycats.exception.NotFoundException;
 import ru.sds.straycats.exception.ServerErrorException;
@@ -10,12 +11,12 @@ import ru.sds.straycats.model.dto.cat.*;
 import ru.sds.straycats.model.dto.price.PriceDBParamsDto;
 import ru.sds.straycats.repository.CatPriceRepository;
 import ru.sds.straycats.repository.CatRepository;
-import ru.sds.straycats.utils.StrayCatsUtils;
+
+import static ru.sds.straycats.utils.StrayCatsUtils.*;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -23,24 +24,18 @@ public class CatService {
 
     private final CatRepository catRepository;
     private final CatPriceRepository catPriceRepository;
-    private final StrayCatsUtils strayCatsUtils;
     private final PriceService priceService;
     private static final List<Integer> genders = Arrays.asList(0, 1);
-    Random rand = new Random();
 
+    @Transactional
     public Long createCat(CatDto catDto) {
-        validateGender(catDto);
-
-        if (Objects.isNull(catDto.getName()) || catDto.getName().isEmpty()) {
-            catDto.setName(strayCatsUtils.generateName());
-        }
+        validateCat(catDto);
 
         CatDBParamsDto createdCat = catRepository.create(
                 catDto.getName(),
                 catDto.getBirth(),
                 catDto.getBreed(),
-                catDto.getGender(),
-                false
+                catDto.getGender()
         );
 
         if (Objects.isNull(createdCat)) {
@@ -52,14 +47,15 @@ public class CatService {
         return createdCat.getId();
     }
 
-    public CatGetByIdResponseDto getCatById(Long catId) {
+    @Transactional(readOnly = true)
+    public CatInfoWithoutPriceDto getCatById(Long catId) {
         List<CatDBParamsDto> cat = catRepository.findById(catId);
 
         if (cat.isEmpty() || cat.getFirst().getRemovedFromSale().equals(true)) {
             throw new NotFoundException(String.format("Cat with id %s not found", catId));
         }
 
-        return new CatGetByIdResponseDto()
+        return new CatInfoWithoutPriceDto()
                 .setId(cat.getFirst().getId())
                 .setBirth(cat.getFirst().getBirth())
                 .setName(cat.getFirst().getName())
@@ -67,38 +63,62 @@ public class CatService {
                 .setGender(cat.getFirst().getGender());
     }
 
-    public CatDto updateCat(CatUpdateRequestDto catUpdateRequestDto) {
-        if (catUpdateRequestDto.getName().equals("")) {
-            throw new BadRequestException("Can't update cat name to empty string");
+    @Transactional
+    public CatCompleteInfoResponseDto updateCat(CatUpdateRequestDto catUpdateRequestDto) {
+        CatInfoWithoutPriceDto cat = getCatById(catUpdateRequestDto.getId());
+
+        if (Objects.nonNull(catUpdateRequestDto.getName())
+                && !cat.getName().equals(catUpdateRequestDto.getName())) {
+
+            if (catUpdateRequestDto.getName().isEmpty()) {
+                throw new BadRequestException("Name cannot be empty string");
+            }
+
+            cat.setName(catUpdateRequestDto.getName());
         }
 
-        CatGetByIdResponseDto cat = getCatById(catUpdateRequestDto.getId());
-        PriceDBParamsDto currentPrice = priceService.getCurrentPriceByCatId(catUpdateRequestDto.getId());
+        if (Objects.nonNull(catUpdateRequestDto.getGender())
+                && !cat.getGender().equals(catUpdateRequestDto.getGender())) {
+            validateGender(catUpdateRequestDto.getGender());
+            cat.setGender(catUpdateRequestDto.getGender());
+        }
 
-        catRepository.update(
-                cat.getId(),
-                catUpdateRequestDto.getName(),
-                catUpdateRequestDto.getBirth(),
-                catUpdateRequestDto.getBreed(),
-                catUpdateRequestDto.getGender(),
-                false
-        );
+        if (Objects.nonNull(catUpdateRequestDto.getBirth())
+                && !cat.getBirth().equals(catUpdateRequestDto.getBirth())) {
+            cat.setBirth(catUpdateRequestDto.getBirth());
+        }
 
-        if (!currentPrice.getPrice().equals(catUpdateRequestDto.getPrice())) {
-            priceService.createPrice(
+        if (Objects.nonNull(catUpdateRequestDto.getBreed())
+                && !cat.getBreed().equals(catUpdateRequestDto.getBreed())) {
+
+            if (catUpdateRequestDto.getBreed().isEmpty()) {
+                throw new BadRequestException("Breed cannot be empty string");
+            }
+
+            cat.setBreed(catUpdateRequestDto.getBreed());
+        }
+
+        if (Objects.nonNull(catUpdateRequestDto.getPrice())) {
+            validatePrice(catUpdateRequestDto.getPrice());
+            priceService.updatePrice(
                     cat.getId(),
                     catUpdateRequestDto.getPrice()
             );
         }
 
-        return new CatDto(
-                catUpdateRequestDto.getGender(),
-                catUpdateRequestDto.getBirth(),
-                catUpdateRequestDto.getBreed(),
-                catUpdateRequestDto.getPrice()
-        ).setName(catUpdateRequestDto.getName());
+        CatDBParamsDto updatedCat = catRepository.update(cat);
+        PriceDBParamsDto currentPrice = priceService.getCurrentPriceByCatId(cat.getId());
+
+        return new CatCompleteInfoResponseDto()
+                .setId(updatedCat.getId())
+                .setName(updatedCat.getName())
+                .setGender(updatedCat.getGender())
+                .setBirth(updatedCat.getBirth())
+                .setBreed(updatedCat.getBreed())
+                .setPrice(currentPrice.getPrice());
     }
 
+    @Transactional
     public void removeFromSale(CatDeleteRequestDto catDeleteRequestDto) {
         List<CatDBParamsDto> catList = catRepository.findById(catDeleteRequestDto.getId());
         if (catList.isEmpty()) {
@@ -110,19 +130,16 @@ public class CatService {
             throw new BadRequestException(String.format("Cat with id %s has been already removed from sale", catDeleteRequestDto.getId()));
         }
 
-        cat.setRemovedFromSale(true);
-
-        catRepository.update(
-                catDeleteRequestDto.getId(),
-                cat.getName(),
-                cat.getBirth(),
-                cat.getBreed(),
-                cat.getGender(),
-                cat.getRemovedFromSale()
-        );
+        catRepository.removeFromSale(catDeleteRequestDto.getId());
     }
 
-    public CatDto suggestCat(CatSuggestionRequestDto catSuggestionRequestDto) {
+    @Transactional(readOnly = true)
+    public CatCompleteInfoResponseDto suggestCat(CatSuggestionRequestDto catSuggestionRequestDto) {
+        validatePrice(catSuggestionRequestDto.getMaxPrice());
+        validateGender(catSuggestionRequestDto.getGender());
+
+        CatPriceDBParamsDto suggestion;
+
         List<CatPriceDBParamsDto> catList = catPriceRepository.getAllCatsByGenderAndMaxPrice(catSuggestionRequestDto.getGender(), catSuggestionRequestDto.getMaxPrice());
 
         if (catList.isEmpty()) {
@@ -130,26 +147,35 @@ public class CatService {
         }
 
         if (catList.size() > 1) {
-            CatPriceDBParamsDto suggestion = catList.get(rand.nextInt(catList.size()));
-            return new CatDto(
-                    suggestion.getGender(),
-                    suggestion.getBirth(),
-                    suggestion.getBreed(),
-                    suggestion.getPrice()
-            ).setName(suggestion.getName());
+            suggestion = getRandomCat(catList);
+        } else {
+            suggestion = catList.getFirst();
         }
 
-        return new CatDto(
-                catList.getFirst().getGender(),
-                catList.getFirst().getBirth(),
-                catList.getFirst().getBreed(),
-                catList.getFirst().getPrice()
-        ).setName(catList.getFirst().getName());
+        return new CatCompleteInfoResponseDto()
+                .setId(suggestion.getId())
+                .setName(suggestion.getName())
+                .setBirth(suggestion.getBirth())
+                .setBreed(suggestion.getBreed())
+                .setGender(suggestion.getGender())
+                .setPrice(suggestion.getPrice());
     }
 
-    private void validateGender(CatDto catDto) {
+    private void validateCat(CatDto catDto) {
         if (!genders.contains(catDto.getGender())) {
             throw new BadRequestException(String.format("Invalid gender %s. Cat gender should be binary: 0 - Female, 1 - Male", catDto.getGender()));
+        }
+
+        if (Objects.isNull(catDto.getName()) || catDto.getName().isEmpty()) {
+            catDto.setName(generateName());
+        }
+
+        if (catDto.getPrice() < 0) {
+            throw new BadRequestException(String.format("Invalid price %s. Price must be non-negative number.", catDto.getPrice()));
+        }
+
+        if (catDto.getBreed().isEmpty()) {
+            throw new BadRequestException("Breed cannot be empty string");
         }
     }
 }

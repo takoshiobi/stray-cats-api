@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.sds.straycats.mapper.CatDBParamsMapper;
 import ru.sds.straycats.model.dto.cat.CatDBParamsDto;
+import ru.sds.straycats.model.dto.cat.CatInfoWithoutPriceDto;
 
 import java.util.Date;
 import java.util.List;
@@ -22,13 +23,20 @@ public class CatRepository {
     private static final String INSERT_CREATE_CAT = """
             INSERT INTO straycats.cat
             (name, birth_date, breed, gender, removed_from_sale)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, false)
             RETURNING id, name, birth_date, breed, gender, removed_from_sale;
             """;
 
     private static final String UPDATE_UPDATE_CAT = """
             UPDATE straycats.cat
-            SET name = ?, birth_date = ?, breed = ?, gender = ?, removed_from_sale = ?
+            SET name = ?, birth_date = ?, breed = ?, gender = ?
+            WHERE id = ?
+            RETURNING id, name, birth_date, breed, gender, removed_from_sale;
+            """;
+
+    private static final String UPDATE_REMOVE_FROM_SALE = """
+            UPDATE straycats.cat
+            SET removed_from_sale = true
             WHERE id = ?;
             """;
 
@@ -42,21 +50,22 @@ public class CatRepository {
     public CatDBParamsDto create(final String name,
                                  final Date birth,
                                  final String breed,
-                                 final Integer gender,
-                                 final Boolean removedFromSale
+                                 final Integer gender
     ) {
         return jdbcTemplate.queryForObject(INSERT_CREATE_CAT, catDBParamsMapper,
-                name, birth, breed, gender, removedFromSale);
+                name, birth, breed, gender);
     }
 
-    public void update(final Long id,
-                       final String name,
-                       final Date birth,
-                       final String breed,
-                       final Integer gender,
-                       final Boolean removedFromSale
-    ) {
-        jdbcTemplate.update(UPDATE_UPDATE_CAT,
-                name, birth, breed, gender, removedFromSale, id);
+    public CatDBParamsDto update(CatInfoWithoutPriceDto catInfoWithoutPriceDto) {
+        return jdbcTemplate.queryForObject(UPDATE_UPDATE_CAT, catDBParamsMapper,
+                catInfoWithoutPriceDto.getName(),
+                catInfoWithoutPriceDto.getBirth(),
+                catInfoWithoutPriceDto.getBreed(),
+                catInfoWithoutPriceDto.getGender(),
+                catInfoWithoutPriceDto.getId());
+    }
+
+    public void removeFromSale(final Long id) {
+        jdbcTemplate.update(UPDATE_REMOVE_FROM_SALE, id);
     }
 }

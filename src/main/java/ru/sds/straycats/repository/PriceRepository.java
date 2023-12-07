@@ -7,26 +7,10 @@ import ru.sds.straycats.mapper.PriceDBParamsMapper;
 import ru.sds.straycats.model.dto.price.PriceDBParamsDto;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 @Repository
 @AllArgsConstructor
 public class PriceRepository {
-
-    private static final String SELECT_GET_CAT_CURRENT_PRICE = """
-            SELECT *
-            FROM straycats.price
-            WHERE cat_id = ?
-            ORDER BY create_ts DESC
-            LIMIT 1
-            """;
-
-    private static final String SELECT_GET_CAT_PRICE_HISTORY = """
-            SELECT *
-            FROM straycats.price
-            WHERE cat_id = ?
-            ORDER BY create_ts DESC
-            """;
 
     private static final String INSERT_CREATE_CAT_PRICE = """
             INSERT INTO straycats.price
@@ -37,14 +21,6 @@ public class PriceRepository {
 
     private final PriceDBParamsMapper priceDBParamsMapper;
     private final JdbcTemplate jdbcTemplate;
-
-    public List<PriceDBParamsDto> getCatCurrentPrice(final Long catId) {
-        return jdbcTemplate.query(SELECT_GET_CAT_CURRENT_PRICE, priceDBParamsMapper, catId);
-    }
-
-    public List<PriceDBParamsDto> getCatPriceHistory(final Long catId) {
-        return jdbcTemplate.query(SELECT_GET_CAT_PRICE_HISTORY, priceDBParamsMapper, catId);
-    }
 
     public PriceDBParamsDto create(final Long catId,
                                    final Double price,

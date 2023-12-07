@@ -24,15 +24,15 @@ public class PriceController {
 
     @ObjectResponse
     @Operation(summary = "Get cat current price by cat id")
-    @GetMapping(value = "/cats/{id}")
-    public PriceCurrentResponseDto getCurrentCatPrice(@PathVariable Long id) {
-        return priceService.getCurrentPrice(id);
+    @GetMapping(value = "/{catId}")
+    public PriceCurrentResponseDto getCurrentCatPrice(@PathVariable Long catId) {
+        return priceService.getCurrentPrice(catId);
     }
 
     @ObjectResponse
     @Operation(summary = "Get cat price history by cat id")
-    @GetMapping(value = "/cats/{id}/history")
-    public List<PriceHistoryResponseDto> getCatPriceHistory(@PathVariable Long id) {
-        return priceService.getCatPriceHistory(id);
+    @GetMapping(value = "/{catId}/history")
+    public List<PriceHistoryResponseDto> getCatPriceHistory(@PathVariable Long catId) {
+        return priceService.getCatPriceHistory(catId);
     }
 }

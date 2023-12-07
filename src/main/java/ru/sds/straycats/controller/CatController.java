@@ -33,14 +33,14 @@ public class CatController {
     @ObjectResponse
     @Operation(summary = "Get cat by id")
     @GetMapping(value = "/{id}")
-    public CatGetByIdResponseDto getCat(@PathVariable Long id) {
+    public CatInfoWithoutPriceDto getCat(@PathVariable Long id) {
         return catService.getCatById(id);
     }
 
     @ObjectResponse
     @Operation(summary = "Update cat information")
     @PutMapping
-    public CatDto updateCat(@RequestBody CatUpdateRequestDto catUpdateRequestDto) {
+    public CatCompleteInfoResponseDto updateCat(@RequestBody CatUpdateRequestDto catUpdateRequestDto) {
         return catService.updateCat(catUpdateRequestDto);
     }
 
@@ -54,7 +54,7 @@ public class CatController {
     @ObjectResponse
     @Operation(summary = "Suggest cat")
     @PostMapping(value = "/suggest")
-    public CatDto suggestCat(@RequestBody CatSuggestionRequestDto catSuggestionRequestDto) {
+    public CatCompleteInfoResponseDto suggestCat(@RequestBody CatSuggestionRequestDto catSuggestionRequestDto) {
         return catService.suggestCat(catSuggestionRequestDto);
     }
 }

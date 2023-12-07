@@ -10,7 +10,7 @@ import java.util.Date;
 @Data
 @Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CatGetByIdResponseDto {
+public class CatCompleteInfoResponseDto {
 
     @Schema(description = "Cat id")
     private Long id;
@@ -26,4 +26,7 @@ public class CatGetByIdResponseDto {
 
     @Schema(description = "Cat breed")
     private String breed;
+
+    @Schema(description = "Cat price")
+    private Double price;
 }
