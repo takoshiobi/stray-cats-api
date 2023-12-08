@@ -14,7 +14,6 @@ import ru.sds.straycats.repository.CatRepository;
 
 import static ru.sds.straycats.utils.StrayCatsUtils.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,11 +24,10 @@ public class CatService {
     private final CatRepository catRepository;
     private final CatPriceRepository catPriceRepository;
     private final PriceService priceService;
-    private static final List<Integer> genders = Arrays.asList(0, 1);
 
     @Transactional
     public Long createCat(CatDto catDto) {
-        validateCat(catDto);
+        validateCatBeforeCreate(catDto);
 
         CatDBParamsDto createdCat = catRepository.create(
                 catDto.getName(),
@@ -159,23 +157,5 @@ public class CatService {
                 .setBreed(suggestion.getBreed())
                 .setGender(suggestion.getGender())
                 .setPrice(suggestion.getPrice());
-    }
-
-    private void validateCat(CatDto catDto) {
-        if (!genders.contains(catDto.getGender())) {
-            throw new BadRequestException(String.format("Invalid gender %s. Cat gender should be binary: 0 - Female, 1 - Male", catDto.getGender()));
-        }
-
-        if (Objects.isNull(catDto.getName()) || catDto.getName().isEmpty()) {
-            catDto.setName(generateName());
-        }
-
-        if (catDto.getPrice() < 0) {
-            throw new BadRequestException(String.format("Invalid price %s. Price must be non-negative number.", catDto.getPrice()));
-        }
-
-        if (catDto.getBreed().isEmpty()) {
-            throw new BadRequestException("Breed cannot be empty string");
-        }
     }
 }
