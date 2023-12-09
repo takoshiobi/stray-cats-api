@@ -7,7 +7,7 @@ import ru.sds.straycats.mapper.CatDBParamsMapper;
 import ru.sds.straycats.model.dto.cat.CatDBParamsDto;
 import ru.sds.straycats.model.dto.cat.CatInfoWithoutPriceDto;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -48,7 +48,7 @@ public class CatRepository {
     }
 
     public CatDBParamsDto create(final String name,
-                                 final Date birth,
+                                 final LocalDate birth,
                                  final String breed,
                                  final Integer gender
     ) {

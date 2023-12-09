@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.util.Date;
+import java.sql.Timestamp;
 
 @Data
 @Accessors(chain = true)
@@ -16,5 +16,5 @@ public class PriceHistoryResponseDto {
     private Double price;
 
     @Schema(description = "Price creation time")
-    private Date createTs;
+    private Timestamp createTs;
 }

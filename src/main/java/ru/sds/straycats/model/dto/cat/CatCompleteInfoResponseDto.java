@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @Accessors(chain = true)
@@ -22,7 +22,7 @@ public class CatCompleteInfoResponseDto {
     private Integer gender;
 
     @Schema(description = "Cat birthdate")
-    private Date birth;
+    private LocalDate birth;
 
     @Schema(description = "Cat breed")
     private String breed;

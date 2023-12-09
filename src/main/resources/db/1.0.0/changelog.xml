@@ -16,4 +16,8 @@
         <sqlFile relativeToChangelogFile="true"
                 path="sql/20231203_1603_drop_index_idx_gender_breed.sql"/>
     </changeSet>
+    <changeSet id="20231209_2119_update_indexes" author="Yulia Scherbakova">
+        <sqlFile relativeToChangelogFile="true"
+                 path="sql/20231209_2119_update_indexes.sql"/>
+    </changeSet>
 </databaseChangeLog>

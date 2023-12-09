@@ -1,14 +1,17 @@
 package ru.sds.straycats.model.dto.cat;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.experimental.Accessors;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @Accessors(chain = true)
+@NoArgsConstructor
 public class CatDto {
 
     @Schema(description = "Cat name")
@@ -16,11 +19,12 @@ public class CatDto {
 
     @NonNull
     @Schema(description = "Cat gender (0 - Female, 1 - Male)")
-    private Integer gender;
+    public Integer gender;
 
     @NonNull
-    @Schema(description = "Cat birthdate")
-    private Date birth;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd.MM.yyyy")
+    @Schema(description = "Cat birthdate", type = "string", example = "12.12.2022")
+    private LocalDate birth;
 
     @NonNull
     @Schema(description = "Cat breed")

@@ -22,7 +22,7 @@ public class CatDBParamsMapper implements RowMapper<CatDBParamsDto> {
         return CatDBParamsDto.builder()
                 .id(rs.getLong(FIELD_NAME_ID))
                 .name(rs.getString(FIELD_NAME_NAME))
-                .birth(rs.getDate(FIELD_NAME_BIRTH))
+                .birth(rs.getDate(FIELD_NAME_BIRTH).toLocalDate())
                 .breed(rs.getString(FIELD_NAME_BREED))
                 .gender(rs.getInt(FIELD_NAME_GENDER))
                 .removedFromSale(rs.getBoolean(FIELD_NAME_REMOVED_FROM_SALE))

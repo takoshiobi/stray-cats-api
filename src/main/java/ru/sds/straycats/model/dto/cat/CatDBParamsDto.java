@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -17,7 +17,7 @@ public class CatDBParamsDto {
 
     private String name;
 
-    private Date birth;
+    private LocalDate birth;
 
     private String breed;
 

@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -15,7 +15,7 @@ public class CatPriceDBParamsDto {
 
     private String name;
 
-    private Date birth;
+    private LocalDate birth;
 
     private String breed;
 
@@ -29,5 +29,5 @@ public class CatPriceDBParamsDto {
 
     private Double price;
 
-    private Date createTs;
+    private LocalDate createTs;
 }

@@ -5,6 +5,7 @@ import ru.sds.straycats.exception.BadRequestException;
 import ru.sds.straycats.model.dto.CatPriceDBParamsDto;
 import ru.sds.straycats.model.dto.cat.CatDto;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +45,12 @@ public class StrayCatsUtils {
         return catList.get(rand.nextInt(catList.size()));
     }
 
+    public void validateBirthdate(LocalDate date) {
+        if (date.isAfter(LocalDate.now())) {
+            throw new BadRequestException("Birth date is greater than current date");
+        }
+    }
+
     public void validateCatBeforeCreate(CatDto catDto) {
         validateGender(catDto.getGender());
         validatePrice(catDto.getPrice());
@@ -54,6 +61,10 @@ public class StrayCatsUtils {
 
         if (catDto.getBreed().isEmpty()) {
             throw new BadRequestException("Breed cannot be empty string");
+        }
+
+        if (catDto.getBirth().isAfter(LocalDate.now())) {
+            throw new BadRequestException("Birth date is greater than current date");
         }
     }
 }

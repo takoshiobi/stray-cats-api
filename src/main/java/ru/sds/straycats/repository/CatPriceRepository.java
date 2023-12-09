@@ -32,18 +32,18 @@ public class CatPriceRepository {
             SELECT *
             FROM straycats.price p
             JOIN straycats.cat c ON c.id = p.cat_id
-            WHERE cat_id = ?
+            WHERE p.cat_id = ?
             AND c.removed_from_sale = false
-            ORDER BY create_ts DESC
+            ORDER BY p.create_ts DESC
             """;
 
     private static final String SELECT_GET_CAT_CURRENT_PRICE = """
             SELECT *
             FROM straycats.price p
             JOIN straycats.cat c ON c.id = p.cat_id
-            WHERE cat_id = ?
+            WHERE p.cat_id = ?
             AND c.removed_from_sale = false
-            ORDER BY create_ts DESC
+            ORDER BY p.create_ts DESC
             LIMIT 1
             """;
 

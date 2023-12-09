@@ -83,6 +83,7 @@ public class CatService {
 
         if (Objects.nonNull(catUpdateRequestDto.getBirth())
                 && !cat.getBirth().equals(catUpdateRequestDto.getBirth())) {
+            validateBirthdate(catUpdateRequestDto.getBirth());
             cat.setBirth(catUpdateRequestDto.getBirth());
         }
 

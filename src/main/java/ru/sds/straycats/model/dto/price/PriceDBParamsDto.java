@@ -6,7 +6,6 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 
 import java.sql.Timestamp;
-import java.util.Date;
 
 @Data
 @Builder
