@@ -18,7 +18,7 @@ import ru.sds.straycats.service.CatService;
 @Tag(name = "Cats")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/cats")
+@RequestMapping("/api/v1/cat")
 public class CatController {
 
     private final CatService catService;

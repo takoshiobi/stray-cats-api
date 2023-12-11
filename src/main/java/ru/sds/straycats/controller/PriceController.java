@@ -17,7 +17,7 @@ import java.util.List;
 @Tag(name = "Prices")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/prices")
+@RequestMapping("/api/v1/price")
 public class PriceController {
 
     private final PriceService priceService;
