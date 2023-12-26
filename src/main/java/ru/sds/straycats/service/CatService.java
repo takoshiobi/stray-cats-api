@@ -1,6 +1,8 @@
 package ru.sds.straycats.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.sds.straycats.exception.BadRequestException;
@@ -9,8 +11,10 @@ import ru.sds.straycats.exception.ServerErrorException;
 import ru.sds.straycats.model.dto.CatPriceDBParamsDto;
 import ru.sds.straycats.model.dto.cat.*;
 import ru.sds.straycats.model.dto.price.PriceDBParamsDto;
+import ru.sds.straycats.rabbitmq.PurchaseProducer;
 import ru.sds.straycats.repository.CatPriceRepository;
 import ru.sds.straycats.repository.CatRepository;
+import ru.sds.straycats.rabbitmq.PurchaseProducer.PurchaseStatus;
 
 import static ru.sds.straycats.utils.StrayCatsUtils.*;
 
@@ -24,6 +28,7 @@ public class CatService {
     private final CatRepository catRepository;
     private final CatPriceRepository catPriceRepository;
     private final PriceService priceService;
+    private final PurchaseProducer purchaseProducer;
 
     @Transactional
     public Long createCat(CatDto catDto) {
@@ -158,5 +163,31 @@ public class CatService {
                 .setBreed(suggestion.getBreed())
                 .setGender(suggestion.getGender())
                 .setPrice(suggestion.getPrice());
+    }
+
+    @RabbitListener(queues = "purchase-cat-request-mq")
+    public void processPurchase(@Payload CatPurchaseRequestDto catPurchaseRequestDto) {
+        List<CatDBParamsDto> cat = catRepository.findById(catPurchaseRequestDto.getCatId());
+
+        if (cat.isEmpty()) {
+            purchaseProducer.sendPurchaseResult(
+                    catPurchaseRequestDto.getPurchaseId(),
+                    PurchaseStatus.ERROR,
+                    String.format("Cat with id %s not found", catPurchaseRequestDto.getCatId())
+            );
+        } else if (!cat.isEmpty() && cat.getFirst().getRemovedFromSale()) {
+            purchaseProducer.sendPurchaseResult(
+                    catPurchaseRequestDto.getPurchaseId(),
+                    PurchaseStatus.ERROR,
+                    String.format("Cat with id %s has been removed from sale", catPurchaseRequestDto.getCatId())
+            );
+        } else {
+            catRepository.removeFromSale(catPurchaseRequestDto.getCatId());
+            purchaseProducer.sendPurchaseResult(
+                    catPurchaseRequestDto.getPurchaseId(),
+                    PurchaseStatus.SUCCESS,
+                    String.format("Cat with id %s bought successfully", catPurchaseRequestDto.getCatId())
+            );
+        }
     }
 }

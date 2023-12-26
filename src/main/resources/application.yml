@@ -10,3 +10,10 @@ spring:
     password: ${DB_PG_PWD_RW:postgres}
   liquibase:
     enabled: false
+rabbitmq:
+  main:
+    addresses: localhost:5672
+    rabbit-host: vhost
+    enable: true
+    password: guest
+    username: guest
