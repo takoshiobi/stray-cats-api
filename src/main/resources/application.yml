@@ -1,0 +1,12 @@
+server:
+  port: ${APP_PORT:8080}
+  error:
+    include-stacktrace: never
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_PG_HOST:localhost}:${DB_PG_PORT:5432}/${DB_PG_BASE:stray-cats}?prepareThreshold=0
+    username: ${DB_PG_USR_RW:postgres}
+    password: ${DB_PG_PWD_RW:postgres}
+  liquibase:
+    enabled: false
